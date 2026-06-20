@@ -3,6 +3,10 @@ import Button from './Button.jsx'
 import UploadAndDisplayImage from './UploadAndDisplayImage.jsx'
 import * as user_settings from './UserSettings.jsx'
 
+const class_name = "settings-subheading" 
+const hover_class_name = "settings-subheading-hover"
+const selected_class_name = "settings-subheading-selected"
+
 const image_id_name = "image-id"
 function PuzzleImage({image, is_highlighted, id}) {
 	console.log("IMAGE SOURCE: ", image)
@@ -86,6 +90,8 @@ function PuzzleDisplay({state, set_puzzle_state, images}) {
 	)
 }
 
+
+
 function Puzzle({puzzle_state, set_puzzle_state, puzzle_images, box_outline_color, box_color, box_type}) {
 	console.log("Puzzle images: ", puzzle_images)
 	console.log("Box outline color: ", box_outline_color)
@@ -99,8 +105,29 @@ function Puzzle({puzzle_state, set_puzzle_state, puzzle_images, box_outline_colo
 		borderStyle: "solid",
 		borderWidth: "2px"
 	}
+	const shuffle_text = "Shuffle"
+
+	//Durstenfeld shuffle algorithm
+	const shuffle_array = (array) => {
+		for (let i = array.length - 1; i > 0; i--) {
+			const j = Math.floor(Math.random() * (i + 1));
+			const temp = array[i];
+			array[i] = array[j];
+			array[j] = temp;
+		}
+	}
+	const on_header_buttons_click = (e) => {
+		if(e.target.textContent === shuffle_text) {
+			const state = [...puzzle_state]	
+			shuffle_array(state)
+			set_puzzle_state(state)
+		}
+	}
 	return (
 		<div className="eight-puzzle-wrapper">
+			<div className="eight-puzzle-header" onClick={on_header_buttons_click}>
+				<Button text={shuffle_text} class_name={class_name} hovered_class_name={hover_class_name} selected_class_name={selected_class_name} />
+			</div>
 			<div className="eight-puzzle-container" style={style}>
 				<div className="eight-puzzle">
 					<PuzzleDisplay state={puzzle_state} images={puzzle_images} set_puzzle_state={set_puzzle_state}/>
