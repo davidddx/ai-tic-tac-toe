@@ -45,5 +45,19 @@ function Button({text, class_name, hovered_class_name, selected_class_name, acti
 	}
 }
 
+export function Dropdown({text, options, class_name, on_change, selected}) {
+	return (
+		<div className="dropdown-wrapper">
+			<label for={text}>{text}:</label>
+			<select name={text} id={text} className={class_name} onChange={on_change} value={selected}>
+				{options.map((option) => 
+					<option selected key={option} value={option}>{option}</option>)
+				
+				}
+			</select>
+		</div>
+	)
+}
 
 export default Button
+

@@ -1,8 +1,9 @@
 import {useState} from 'react'
 import { Heap } from 'heap-js';
 import Button from './Button.jsx'
+import { Dropdown } from './Button.jsx'
 import UploadAndDisplayImage from './UploadAndDisplayImage.jsx'
-import * as user_settings from './UserSettings.jsx'
+import * as user_settings from './EightPuzzleSettings.jsx'
 import recognize_image from './RecognizeImage.js'
 
 const class_name = "settings-subheading" 
@@ -87,48 +88,7 @@ const generate_shuffled_puzzle = () => {
 	return shuffled
 }
 
-function* bfs_generator(puzzle_state) {
-	const visited = new Set()
-	const q = []
-	q.push([puzzle_state.toString(), 0])
-	const N = 362880
-	let n = 0
-	const solved_puzzle_str = solved_puzzle.toString()
-	let solution_path_length = Number.MAX_SAFE_INTEGER
-	while(q.length > 0 && n < N) {
-		const [current_node, path_length] = q.shift()	
-		if(visited.has(current_node)) {
-			continue
-		}
-		n += 1
-		console.assert(typeof current_node === "string", "expected node in queue to be string")
-		const curr_node_split = current_node.split(',')
-		const curr_node_array = curr_node_split.map((x) => parseInt(x))
-		if(current_node === solved_puzzle_str) {
-			solution_path_length = path_length	
-			yield [curr_node_array, solution_path_length, n] 
-			break
-		}
-		const space_index = curr_node_array.indexOf(user_settings.space_number)
-		const adj_indices = get_adj_indices(space_index)
-		for(const adj_index of adj_indices) {
-			const new_puzzle = [...curr_node_array]
-			new_puzzle[adj_index] = curr_node_array[space_index]
-			new_puzzle[space_index] = curr_node_array[adj_index]
-			const stringified = new_puzzle.toString()
-			if(visited.has(stringified)) {
-				continue
-			}
-			q.push([stringified, path_length + 1])
-		}
-		yield curr_node_array
-		visited.add(current_node)
-	}
-
-}
-
 function bfs(puzzle_state) {
-	const solution_chain = []
 	const visited = new Set() 
 	const q = []
 	q.push([puzzle_state.toString(), 0])
@@ -136,6 +96,8 @@ function bfs(puzzle_state) {
 	let n = 0 // iteration count
 	const solved_puzzle_str = solved_puzzle.toString()
 	let solution_path_length = Number.MAX_SAFE_INTEGER 
+	const paths = {}
+	paths[puzzle_state.toString()] = []
 	while (q.length > 0 && n < N) {
 		const [current_node, path_length] = q.shift()
 		if(visited.has(current_node)) {
@@ -143,7 +105,6 @@ function bfs(puzzle_state) {
 		}
 		n += 1
 		console.assert(typeof current_node === "string", "expected node in queue to be string")
-		solution_chain.push(current_node.toString())
 		if(current_node === solved_puzzle_str) {
 			solution_path_length = path_length	
 			break
@@ -161,12 +122,13 @@ function bfs(puzzle_state) {
 				continue
 			}
 			q.push([stringified, path_length + 1])
+			paths[stringified] = [...paths[current_node], new_puzzle]
 		}
 		visited.add(current_node)
 	}
 	console.log("VISITED: ", visited)
 	console.log("n: ", n)
-	return [solution_chain, solution_path_length]
+	return [paths[solved_puzzle_str], solution_path_length, n]
 }
 
 function dijkstra(puzzle_state) {
@@ -180,7 +142,7 @@ function dijkstra(puzzle_state) {
 	let n = 0
 	let N = 362880
 	const paths = {}
-	paths[source] = [puzzle_state]
+	paths[source] = []
 	while(!pq.isEmpty() && n < N) {
 		const [dist_so_far, u] = pq.pop()
 		if(u === solved_puzzle.toString()) {
@@ -231,9 +193,6 @@ function a_star(puzzle_state) {
 	const h = (p) => {
 		return get_puzzle_manhattan_distance(p, solved_puzzle) 
 	}
-	const g = (p) => {
-		return get_puzzle_manhattan_distance(p, puzzle_state)
-	}
 	const source = puzzle_state.toString()
 	g_score[source] = 0
 	f_score[source] = h(puzzle_state)
@@ -242,8 +201,6 @@ function a_star(puzzle_state) {
 	let n = 0
 	const N = 362880 
 	pq.init([[f_score[source], source, 0]])
-	console.log("PQ: ", pq)
-	console.log("IS EMPTY?: ", pq.isEmpty())
 	let astar_path_size = N
 	while(!pq.isEmpty() && n < N) {
 		const [priority, curr, path_size] = pq.pop()
@@ -260,7 +217,7 @@ function a_star(puzzle_state) {
 			const new_puzzle = [...curr_node_array]
 			new_puzzle[idx] = curr_node_array[space_index]
 			new_puzzle[space_index] = curr_node_array[idx]
-			const tentative_g_score = g(new_puzzle) 
+			const tentative_g_score = g_score[curr] + 1 // edge weight = 1
 			const new_puzzle_str = new_puzzle.toString()
 			if(Object.hasOwn(g_score, new_puzzle_str)) {
 				continue
@@ -271,9 +228,58 @@ function a_star(puzzle_state) {
 			paths[new_puzzle_str] = [...paths[curr], new_puzzle]
 		}
 	}
-	console.log("n: ", n)
 	return [paths[solved_puzzle.toString()], n, astar_path_size]
 
+}
+
+function gbfs(puzzle_state) {
+	const get_puzzle_manhattan_distance = (p, reference_puzzle) => {
+		let rv = 0
+		for(const [index, element] of p.entries()) {
+			const [curr_row, curr_col] = get_2d_pos(index)
+			const [goal_row, goal_col] = get_2d_pos(reference_puzzle.indexOf(element)) 
+			rv += Math.abs(curr_row - goal_row) + Math.abs(curr_col - goal_col)
+		}
+		return rv
+	}
+	const h = (p) => {
+		return get_puzzle_manhattan_distance(p, solved_puzzle) 
+	}
+	const comparator = (a, b) => a[0] - b[0]
+	const pq = new Heap(comparator)
+	const visited = new Set()
+	const source = puzzle_state.toString()
+	const paths = {}
+	paths[source] = []
+	let n = 0
+	const N = 362880 
+	pq.init([[h(puzzle_state), source, 0]])
+	let gbfs_path_size = N
+	visited.add(source)
+	while(!pq.isEmpty() && n < N) {
+		const [priority, curr, path_size] = pq.pop()
+		if(curr.toString() === solved_puzzle.toString()) {
+			gbfs_path_size = path_size
+			break
+		}
+		n += 1
+		const curr_node_split = curr.split(',')
+		const curr_node_array = curr_node_split.map((x) => parseInt(x))
+		const space_index = curr_node_array.indexOf(user_settings.space_number)
+		for(const idx of get_adj_indices(space_index)) {
+			const new_puzzle = [...curr_node_array]
+			new_puzzle[idx] = curr_node_array[space_index]
+			new_puzzle[space_index] = curr_node_array[idx]
+			const new_puzzle_str = new_puzzle.toString()
+			if(visited.has(new_puzzle_str)) {
+				continue
+			}
+			pq.push([h(new_puzzle), new_puzzle_str, path_size + 1]) 
+			paths[new_puzzle_str] = [...paths[curr], new_puzzle]
+			visited.add(new_puzzle_str)
+		}
+	}
+	return [paths[solved_puzzle.toString()], n, gbfs_path_size]
 }
 
 function PuzzleImage({image, is_highlighted, id}) {
@@ -375,6 +381,7 @@ function Puzzle({puzzle_state, set_puzzle_state, puzzle_images, box_outline_colo
 	const solve_bfs_text = "Solve (BFS)"
 	const solve_dijkstra_text = "Solve (Dijkstra)"
 	const solve_astar_text = "Solve (A*)"
+	const solve_gbfs_text = "Solve (GBFS)"
 	const button_class_name = "puzzle-header-button"
 	const button_hover_class_name = "puzzle-header-button-hover"
 	const button_selected_class_name = "puzzle-header-button-selected"
@@ -394,19 +401,10 @@ function Puzzle({puzzle_state, set_puzzle_state, puzzle_images, box_outline_colo
 					set_ui_lock(true)
 					console.log("SOLVING BFS for puzzle ", puzzle_state)
 					const initial_puzzle_state = [...puzzle_state]
-					const bfs_gen = bfs_generator(initial_puzzle_state)
-					let gen_val = bfs_gen.next().value
-					do {
-						//console.log("GEN VAL: ", gen_val)
-						if(gen_val[0].toString() === solved_puzzle.toString()) {
-							break
-						}
-						set_puzzle_state(gen_val)
-						gen_val = bfs_gen.next().value
-						
-					} while(typeof gen_val[0] !== "object")
-					console.log("Final puzzle state: ", gen_val)
-					set_puzzle_state(gen_val[0])
+					const [path, path_length, nodes_explored] = bfs(initial_puzzle_state)
+					console.log("BFS PATH: ", path)
+					console.log("path length: ", path_length)
+					console.log("Nodes explored: ", nodes_explored)
 					set_ui_lock(false)
 				}
 				catch (error) {
@@ -427,7 +425,7 @@ function Puzzle({puzzle_state, set_puzzle_state, puzzle_images, box_outline_colo
 					console.log("Optimal path: ", path)
 					console.log("Shortest path len: ", path_length)
 					console.log("Nodes explored: ", nodes_explored)
-					set_puzzle_state(solved_puzzle)
+					//set_puzzle_state(solved_puzzle)
 				}
 				catch (error) {
 					console.error(error)
@@ -444,7 +442,7 @@ function Puzzle({puzzle_state, set_puzzle_state, puzzle_images, box_outline_colo
 					console.log("Performing A* on ", initial_puzzle_state)
 					const a_star_res = a_star(initial_puzzle_state)
 					console.log("A*: ", a_star_res)
-					set_puzzle_state(solved_puzzle)
+					//set_puzzle_state(solved_puzzle)
 					set_ui_lock(false)
 				}
 				catch (error) {
@@ -454,6 +452,25 @@ function Puzzle({puzzle_state, set_puzzle_state, puzzle_images, box_outline_colo
 			}
 			perform_astar()
 		}
+		if(e.target.textContent === solve_gbfs_text)  {
+			const perform_gbfs = async () => {
+				try{
+					set_ui_lock(true)	
+					const initial_puzzle_state = [...puzzle_state]
+					console.log("Performing GBFS on ", initial_puzzle_state)
+					const gbfs_res = gbfs(initial_puzzle_state)
+					console.log("gbfs: ", gbfs_res)
+					//set_puzzle_state(solved_puzzle)
+					set_ui_lock(false)
+				}
+				catch (error) {
+					console.error(error)
+					set_ui_lock(false)
+				}
+			}
+			perform_gbfs()
+		}
+
 	}
 	return (
 		<div className="eight-puzzle-wrapper">
@@ -462,6 +479,7 @@ function Puzzle({puzzle_state, set_puzzle_state, puzzle_images, box_outline_colo
 				<Button text={solve_bfs_text} class_name={button_class_name} hovered_class_name={button_hover_class_name} selected_class_name={button_selected_class_name} />
 				<Button text={solve_dijkstra_text} class_name={button_class_name} hovered_class_name={button_hover_class_name} selected_class_name={button_selected_class_name} />
 				<Button text={solve_astar_text} class_name={button_class_name} hovered_class_name={button_hover_class_name} selected_class_name={button_selected_class_name} />
+				<Button text={solve_gbfs_text} class_name={button_class_name} hovered_class_name={button_hover_class_name} selected_class_name={button_selected_class_name} />
 			</div>
 			<div className="eight-puzzle-container" style={style}>
 				<div className="eight-puzzle">
@@ -472,19 +490,7 @@ function Puzzle({puzzle_state, set_puzzle_state, puzzle_images, box_outline_colo
 	)
 }
 
-function SettingsDropdown({text, options, class_name, on_change, selected}) {
-	return (
-		<div className="settings-dropdown-wrapper">
-			<label for={text}>Choose {text}:</label>
-			<select name={text} id={text} className={class_name} onChange={on_change} value={selected}>
-				{options.map((option) => 
-					<option selected key={option} value={option}>{option}</option>)
-				
-				}
-			</select>
-		</div>
-	)
-}
+
 
 function PuzzleSubheading({text, active_subheading}) {
 
@@ -540,7 +546,7 @@ function SettingsImagesEntry({image_number, curr_image, set_image, set_is_defaul
 						<Button text={custom_text} class_name={class_name} hovered_class_name={hovered_class_name} selected_class_name={selected_class_name} active={curr_button_choice===custom_text}/>
 					</div>
 					{curr_button_choice === custom_text && <UploadAndDisplayImage button_class_name={class_name} button_hover_class_name={hovered_class_name} selected_image={selected_image} set_selected_image={set_selected_image} imageContainerClassName="settings-preview-image-container"/>}
-					{curr_button_choice === default_text && <SettingsDropdown options={user_settings.default_image_color_options} text="color" class_name={dropdown_class} on_change={on_dropdown_change} selected={color}/>}
+					{curr_button_choice === default_text && <Dropdown options={user_settings.default_image_color_options} text="color" class_name={dropdown_class} on_change={on_dropdown_change} selected={color}/>}
 				</div>
 			</div>
 
