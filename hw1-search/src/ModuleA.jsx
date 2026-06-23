@@ -10,14 +10,6 @@ const class_name = "settings-subheading"
 const hover_class_name = "settings-subheading-hover"
 const selected_class_name = "settings-subheading-selected"
 
-
-// Source - https://stackoverflow.com/a/39914235
-// Posted by Dan Dascalescu, modified by community. See post 'Timeline' for change history
-// Retrieved 2026-06-20, License - CC BY-SA 4.0
-function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
 const image_id_name = "image-id"
 
 const get_adj_indices = (idx) => {
@@ -364,11 +356,7 @@ function PuzzleDisplay({state, set_puzzle_state, images, ui_lock}) {
 
 
 
-function Puzzle({puzzle_state, set_puzzle_state, puzzle_images, box_outline_color, box_color, box_type}) {
-	console.log("Puzzle images: ", puzzle_images)
-	console.log("Box outline color: ", box_outline_color)
-	console.log("box color: ", box_color)
-	console.log("puzzle state: ", puzzle_state)
+function Puzzle({puzzle_state, set_puzzle_state, puzzle_images, box_outline_color, box_color, box_type, show_settings, set_show_settings}) {
 	const border_radius = box_type === user_settings.rounded_corners_box_type ? "5px" : "0px"
 	const style = {
 		backgroundColor: user_settings.get_rgb_by_color(box_color),
@@ -385,7 +373,23 @@ function Puzzle({puzzle_state, set_puzzle_state, puzzle_images, box_outline_colo
 	const button_class_name = "puzzle-header-button"
 	const button_hover_class_name = "puzzle-header-button-hover"
 	const button_selected_class_name = "puzzle-header-button-selected"
+	const show_settings_text = "Show Settings"
+	const hide_settings_text = "Hide Settings"
 	const [ui_lock, set_ui_lock] = useState(false)
+	const not_animating_state = "NOT ANIMATING"
+	const processing_state = "PROCESSING"
+	const animating_state = "ANIMATING"
+	const done_state = "DONE"
+	const [animation_state, set_animation_state] = useState(not_animating_state) 
+	const animate_puzzle_sequence = async (sequence) => {
+		set_animation_state(animating_state)
+		for(const item of sequence) {
+			await sleep(500)
+			set_puzzle_state(item)
+		}
+		set_animation_state(done_state)
+	}
+	console.log("ANIMATION STATE: ", animation_state)
 	const on_header_buttons_click = (e) => {
 		if(ui_lock) {
 			return
@@ -398,13 +402,23 @@ function Puzzle({puzzle_state, set_puzzle_state, puzzle_images, box_outline_colo
 		if(e.target.textContent === solve_bfs_text) {
 			const perform_bfs = async () => {
 				try {
-					set_ui_lock(true)
 					console.log("SOLVING BFS for puzzle ", puzzle_state)
 					const initial_puzzle_state = [...puzzle_state]
+					const start = new Date().getTime();
 					const [path, path_length, nodes_explored] = bfs(initial_puzzle_state)
+					const end = new Date().getTime()
 					console.log("BFS PATH: ", path)
 					console.log("path length: ", path_length)
 					console.log("Nodes explored: ", nodes_explored)
+					await animate_puzzle_sequence(path)
+					set_solve_time(end - start)
+					if(initial_puzzle_state.toString() === solved_puzzle.toString()) {
+						set_nodes_expanded(0)
+					}
+					else{
+						set_nodes_expanded(nodes_explored)
+					}
+					set_solution_length(path_length)
 					set_ui_lock(false)
 				}
 				catch (error) {
@@ -412,27 +426,47 @@ function Puzzle({puzzle_state, set_puzzle_state, puzzle_images, box_outline_colo
 					set_ui_lock(false)
 				}
 			}
-			perform_bfs()
+			const x = async () => {
+				set_ui_lock(true)
+				await sleep(50)
+				perform_bfs().then(() => set_ui_lock(false))
+			}
+			const set_to_processing = async () => {set_animation_state(processing_state)}
+			set_to_processing()
+			x()
 		}
 		if(e.target.textContent === solve_dijkstra_text)  {
 			const perform_dijkstra = async () => {
 				try{
 					set_ui_lock(true)	
-					set_ui_lock(false)
 					const initial_puzzle_state = [...puzzle_state]
 					console.log("Performing dijsktra on ", initial_puzzle_state)
+					const start = new Date().getTime();
 					const [path_length, nodes_explored, path] = dijkstra(initial_puzzle_state)
+					const end = new Date().getTime()
+					set_solve_time(end - start)
+					set_nodes_expanded(nodes_explored)
+					set_solution_length(path_length)
+
 					console.log("Optimal path: ", path)
 					console.log("Shortest path len: ", path_length)
 					console.log("Nodes explored: ", nodes_explored)
-					//set_puzzle_state(solved_puzzle)
+					await animate_puzzle_sequence(path)
+					set_ui_lock(false)
 				}
 				catch (error) {
 					console.error(error)
 					set_ui_lock(false)
 				}
 			}
-			perform_dijkstra()
+			const x = async () => {
+				set_ui_lock(true)
+				await sleep(50)
+				perform_dijkstra().then(() => set_ui_lock(false))
+			}
+			const set_to_processing = () => {set_animation_state(processing_state)}
+			set_to_processing()
+			x()
 		}
 		if(e.target.textContent === solve_astar_text)  {
 			const perform_astar = async () => {
@@ -440,9 +474,17 @@ function Puzzle({puzzle_state, set_puzzle_state, puzzle_images, box_outline_colo
 					set_ui_lock(true)	
 					const initial_puzzle_state = [...puzzle_state]
 					console.log("Performing A* on ", initial_puzzle_state)
+					const start = new Date().getTime()
 					const a_star_res = a_star(initial_puzzle_state)
+					const nodes_explored = a_star_res[1]
+					const path_length = a_star_res[2]
 					console.log("A*: ", a_star_res)
-					//set_puzzle_state(solved_puzzle)
+					const end = new Date().getTime()
+					set_solve_time(end - start)
+					set_nodes_expanded(nodes_explored)
+					set_solution_length(path_length)
+					const path = a_star_res[0]
+					await animate_puzzle_sequence(path)
 					set_ui_lock(false)
 				}
 				catch (error) {
@@ -450,17 +492,33 @@ function Puzzle({puzzle_state, set_puzzle_state, puzzle_images, box_outline_colo
 					set_ui_lock(false)
 				}
 			}
-			perform_astar()
+			const x = async () => {
+				set_ui_lock(true)
+				await sleep(50)
+				perform_astar().then(() => set_ui_lock(false))
+			}
+			const set_to_processing = async () => {set_animation_state(processing_state)}
+			set_to_processing()
+			x()
 		}
 		if(e.target.textContent === solve_gbfs_text)  {
 			const perform_gbfs = async () => {
 				try{
 					set_ui_lock(true)	
+					sleep(10)
 					const initial_puzzle_state = [...puzzle_state]
 					console.log("Performing GBFS on ", initial_puzzle_state)
+					const start = new Date().getTime()
 					const gbfs_res = gbfs(initial_puzzle_state)
+					const end = new Date().getTime()
+					const nodes_explored = gbfs_res[1]
+					const path_length = gbfs_res[2]
+					set_solve_time(end - start)
+					set_nodes_expanded(nodes_explored)
+					set_solution_length(path_length)
 					console.log("gbfs: ", gbfs_res)
-					//set_puzzle_state(solved_puzzle)
+					const path = gbfs_res[0]
+					await animate_puzzle_sequence(path)
 					set_ui_lock(false)
 				}
 				catch (error) {
@@ -468,23 +526,79 @@ function Puzzle({puzzle_state, set_puzzle_state, puzzle_images, box_outline_colo
 					set_ui_lock(false)
 				}
 			}
-			perform_gbfs()
+			const x = () => {
+				set_ui_lock(true)
+				perform_gbfs().then(() => {
+					console.log("Unlocking ui")
+					set_ui_lock(false)
+				})
+			}
+			x()
+			//perform_gbfs()
 		}
-
+		if(e.target.textContent === hide_settings_text) {
+			set_show_settings(false)
+		}
+		if(e.target.textContent === show_settings_text) {
+			set_show_settings(true)
+		}
 	}
+	const on_puzzle_click = (e) => {
+		console.log("TARGET: ", e.target)
+		if(!e.target.classList.contains('highlighted-puzzle-image')) {
+			return
+		}
+		if(animation_state === done_state) {
+			set_animation_state(not_animating_state)
+		}
+	}
+	const eight_puzzle_wrapper_class = "eight-puzzle-wrapper"
+	const [nodes_expanded, set_nodes_expanded] = useState(0)
+	const [solve_time, set_solve_time] = useState(0)
+	const [solution_length, set_solution_length] = useState(0)
 	return (
-		<div className="eight-puzzle-wrapper">
+		<div className={eight_puzzle_wrapper_class}>
+			<div className="puzzle-title">
+				{"8-puzzle"}
+			</div>
 			<div className="eight-puzzle-header" onClick={on_header_buttons_click}>
 				<Button text={shuffle_text} class_name={button_class_name} hovered_class_name={button_hover_class_name} selected_class_name={button_selected_class_name} />
 				<Button text={solve_bfs_text} class_name={button_class_name} hovered_class_name={button_hover_class_name} selected_class_name={button_selected_class_name} />
 				<Button text={solve_dijkstra_text} class_name={button_class_name} hovered_class_name={button_hover_class_name} selected_class_name={button_selected_class_name} />
 				<Button text={solve_astar_text} class_name={button_class_name} hovered_class_name={button_hover_class_name} selected_class_name={button_selected_class_name} />
 				<Button text={solve_gbfs_text} class_name={button_class_name} hovered_class_name={button_hover_class_name} selected_class_name={button_selected_class_name} />
+				{!show_settings && <Button text={show_settings_text} class_name={button_class_name} hovered_class_name={button_hover_class_name} selected_class_name={button_selected_class_name} />}
+				{show_settings && <Button text={hide_settings_text} class_name={button_class_name} hovered_class_name={button_hover_class_name} selected_class_name={button_selected_class_name} />}
 			</div>
 			<div className="eight-puzzle-container" style={style}>
-				<div className="eight-puzzle">
+				<div className="eight-puzzle" onClick={on_puzzle_click}>
 					<PuzzleDisplay state={puzzle_state} images={puzzle_images} set_puzzle_state={set_puzzle_state} ui_lock={ui_lock}/>
 				</div>
+			</div>
+			<div className="eight-puzzle-footer">
+				{animation_state === processing_state && "Processing..."}
+				{animation_state === animating_state && "Animating..."}
+				{animation_state === done_state && (
+					<div>
+						<div>
+							Nodes expanded: {nodes_expanded}
+						</div>
+						<div>
+							Solve time: {solve_time} ms
+						</div>
+						<div>
+							Solution length: {solution_length}
+						</div>
+					</div>
+				)}
+				{
+					animation_state === not_animating_state && 
+					puzzle_state.toString() === solved_puzzle.toString() &&
+					<div>
+						You win!
+					</div>
+
+				}
 			</div>
 		</div>
 	)
@@ -589,6 +703,10 @@ function PuzzleSettingsHeader({active_subsection, set_active_subsection}) {
 		if (target.textContent == "") {
 			return
 		}
+		if(active_subsection === target.textContent) {
+			set_active_subsection(user_settings.no_subsection)
+			return
+		}
 		if (user_settings.settings_subsections.includes(target.textContent)) {
 			set_active_subsection(target.textContent)
 		}
@@ -606,7 +724,7 @@ function PuzzleSettingsHeader({active_subsection, set_active_subsection}) {
 	)
 }
 
-function PuzzleSettings({settings, set_settings}) {
+function PuzzleSettings({settings, set_settings, show}) {
 	const [active_subsection, set_active_subsection] = useState(user_settings.no_subsection)
 	const curr_images = settings.get_puzzle_image_paths()
 	const set_image = (number, path) => {
@@ -629,6 +747,9 @@ function PuzzleSettings({settings, set_settings}) {
 		new_settings.is_custom[number] = !is_default
 		set_settings(new_settings)
 	}
+	if(!show) {
+		return (null)
+	}
 	const colors = settings.get_image_colors()
 	return (
 		<div className="eight-puzzle-settings-container">
@@ -647,6 +768,7 @@ function ModuleA({active}) {
 	const [curr_user_settings, set_curr_user_settings] = useState(default_user_settings)
 	const test_puzzle = [8,1,3,4,user_settings.space_number,2,7,6,5]
 	const [puzzle_state, set_puzzle_state] = useState(test_puzzle)
+	const [show_settings, set_show_settings] = useState(true)
 	if(!active) {
 		return (null)
 	}
@@ -659,8 +781,8 @@ function ModuleA({active}) {
 	}
 	return (
 		<div className="module">
-			<Puzzle puzzle_state={puzzle_state} puzzle_images={curr_user_settings.get_puzzle_image_paths_without_null()} box_color={curr_user_settings.box_color} box_outline={curr_user_settings.box_outline} set_puzzle_state={set_puzzle_state}/>
-			<PuzzleSettings settings={curr_user_settings} set_settings={debug_set_curr_user_settings}/>	
+			<Puzzle puzzle_state={puzzle_state} puzzle_images={curr_user_settings.get_puzzle_image_paths_without_null()} box_color={curr_user_settings.box_color} box_outline={curr_user_settings.box_outline} set_puzzle_state={set_puzzle_state} show_settings={show_settings} set_show_settings={set_show_settings}/>
+			<PuzzleSettings settings={curr_user_settings} set_settings={debug_set_curr_user_settings} show={show_settings}/>	
 		</div>
 	)
 }

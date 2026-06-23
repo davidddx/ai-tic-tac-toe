@@ -35,9 +35,10 @@
 	display: flex;
 	flex: auto;
 	align-items: flex-start;
+	justify-content: space-around;
 }
 .eight-puzzle-settings-container {
-	flex: 0 0 25%
+	margin: 10px;
 }
 .settings-header {
 	display: flex;
@@ -46,7 +47,7 @@
 .settings-title {
 	font-size: 20px;
 	text-align: center;
-	margin-bottom: 10px;
+	margin: 6px;
 }
 .settings-subheadings {
 	font-size: 12px;
@@ -163,7 +164,6 @@
 }
 .eight-puzzle-wrapper, .tic-tac-toe-wrapper {
 	display: flex;
-	flex: 0 0 75%;
 	align-items: center;
 	justify-content: space-around;
 	flex-direction: column;
@@ -196,6 +196,9 @@
 	flex-direction: column;
 	justify-content: space-around;
 }
+.eight-puzzle-footer {
+
+}
 .eight-puzzle-header, .tic-tac-toe-header {
 	display: flex;
 	flex-direction: row;
@@ -215,4 +218,14 @@
 }
 .puzzle-header-button-hover {
 	border-color: var(--highlight);
+}
+.puzzle-title {
+	font-size: 20px;
+	margin: 5px;
+	font-weight: bold;
+}
+.tic-tac-toe-image {
+	border-style: solid;
+	border-color: var(--border);
+	border-width: 2px;
 }
