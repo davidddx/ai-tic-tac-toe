@@ -93,7 +93,9 @@ function BoardDisplay({board, num_rows, x_color, o_color, set_board, ui_lock, se
 function TicTacToePuzzle({mode, num_rows, x_color, o_color}) {
 	const [board, set_board] = useState(user_settings.default_tic_tac_toe)
 	const [ui_lock, set_ui_lock] = useState(false)
-	console.log("NORMALIZED: ", get_all_moves_normalized(board, num_rows, user_settings.x_char))
+	console.log("NORMALIZED num_rows=3: ", get_all_moves_normalized(['', '', '', '', '', '', '', '', ''], num_rows, user_settings.x_char))
+	console.log("NORMALIZED num_rows=4: ", get_all_moves_normalized(['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''], 4, user_settings.x_char))
+	console.log("NORMALIZED num_rows=5: ", get_all_moves_normalized(['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''], 5, user_settings.x_char))
 	return (
 		<BoardDisplay board={board} num_rows={num_rows} x_color={x_color} o_color={o_color} set_board={set_board} ui_lock={ui_lock} set_ui_lock={set_ui_lock}/>
 	)

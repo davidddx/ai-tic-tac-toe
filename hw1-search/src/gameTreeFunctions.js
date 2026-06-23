@@ -62,8 +62,8 @@ export const normalize = (board, num_rows) => {
 	transformations.push(rotate_board_270(board, num_rows))
 	transformations.push(flip_horizontal(board, num_rows))
 	transformations.push(flip_vertical(board, num_rows))
-	transformations.push(rotate_board_90(flip_horizontal(board, num_rows)))
-	transformations.push(rotate_board_90(flip_vertical(board, num_rows)))
+	transformations.push(rotate_board_90(flip_horizontal(board, num_rows), num_rows))
+	transformations.push(rotate_board_90(flip_vertical(board, num_rows), num_rows))
 	let canonical_form = transformations[0]
 	for(const transformed_board of transformations) {
 		if(transformed_board.toString().localeCompare(canonical_form.toString()) < 0) {
