@@ -132,17 +132,16 @@ const draw_value = 1
 const win_value = 2
 const lose_value = 0
 
-export const run_minimax_on_game_tree = (game_tree, num_rows, player_char) => {
+export const run_alpha_beta_pruning_on_game_tree = (game_tree, num_rows, player_char) => {
 	const score_node_map = {}
 	const visited = new Set()
 	const min_char = user_settings.min_char 
 	const max_char = user_settings.max_char 
-	const minimax = (board, is_max) => {
-		/*
+	let nodes_visited = 0
+	const minimax = (board, is_max, alpha, beta) => {
 		if(visited.has(board.value)) {
 			return score_node_map[board.value]
 		}
-		*/
 		const board_array = board_string_to_array(board.value)
 		if(check_terminal(board_array, num_rows)) {
 			if(check_draw(board_array, num_rows)) {
@@ -161,6 +160,88 @@ export const run_minimax_on_game_tree = (game_tree, num_rows, player_char) => {
 				console.error("INVALID TERMINAL STATE DETECTED FOR ", board)
 			}
 		}
+		nodes_visited++
+		if(is_max) {
+			let best = Number.MIN_SAFE_INTEGER
+			for(const child of board.children) {
+				const score = minimax(child, false, alpha, beta)
+				best = Math.max(best, score)
+				alpha = Math.max(alpha, best)
+				if(beta <= alpha) {
+					break
+				}
+			}
+			visited.add(board.value)
+			score_node_map[board.value] = best
+			return best
+		}
+		else {
+			let best = Number.MAX_SAFE_INTEGER
+			for(const child of board.children) {
+				const score = minimax(child, true, alpha, beta)
+				best = Math.min(best, score)
+				beta = Math.min(beta, best)
+				if(beta <= alpha) {
+					break
+				}
+			}
+			visited.add(board.value)
+			score_node_map[board.value] = best
+			return best
+		}
+	}
+	const start_max = player_char === max_char 
+	const initial_alpha = Number.MIN_SAFE_INTEGER
+	const initial_beta = Number.MAX_SAFE_INTEGER
+	const rv = minimax(game_tree, start_max, initial_alpha, initial_beta)
+	console.log("ALPHA-BETA PRUNING NODES VISITED: ", nodes_visited)
+	let max_child = null
+	let min_child = null
+	for(const child of game_tree.children) {
+		if(max_child === null) {
+			max_child = child
+			min_child = child
+			continue
+		}
+		if(score_node_map[max_child.value] < score_node_map[child.value]) {
+			max_child = child
+		}
+		if(score_node_map[min_child.value] > score_node_map[child.value]) {
+			min_child = child
+		}
+	}
+	return start_max ? max_child : min_child
+}
+
+export const run_minimax_on_game_tree = (game_tree, num_rows, player_char) => {
+	const score_node_map = {}
+	const visited = new Set()
+	const min_char = user_settings.min_char 
+	const max_char = user_settings.max_char 
+	let nodes_visited = 0
+	const minimax = (board, is_max) => {
+		if(visited.has(board.value)) {
+			return score_node_map[board.value]
+		}
+		const board_array = board_string_to_array(board.value)
+		if(check_terminal(board_array, num_rows)) {
+			if(check_draw(board_array, num_rows)) {
+				score_node_map[board.value] = draw_value 
+				return draw_value
+			}
+			else if(check_win(board_array, max_char, num_rows)) {
+				score_node_map[board.value] = win_value
+				return win_value 
+			}
+			else if(check_win(board_array, min_char, num_rows)){
+				score_node_map[board.value] = lose_value
+				return lose_value
+			}
+			else {
+				console.error("INVALID TERMINAL STATE DETECTED FOR ", board)
+			}
+		}
+		nodes_visited++;
 		if(is_max) {
 			let best = Number.MIN_SAFE_INTEGER
 			for(const child of board.children) {
@@ -186,7 +267,6 @@ export const run_minimax_on_game_tree = (game_tree, num_rows, player_char) => {
 	const rv = minimax(game_tree, start_max)
 	let max_child = null
 	let min_child = null
-	//console.log("SCORE NODE MAP: ", score_node_map)
 	for(const child of game_tree.children) {
 		if(max_child === null) {
 			max_child = child
@@ -199,14 +279,8 @@ export const run_minimax_on_game_tree = (game_tree, num_rows, player_char) => {
 		if(score_node_map[min_child.value] > score_node_map[child.value]) {
 			min_child = child
 		}
-		/*
-		console.log("CHILD: ", child)
-		console.log("MAX CHILD: ", max_child)
-		console.log("score: ", score_node_map[max_child.value]) 
-		console.log("MIN CHILD: ", min_child)
-		console.log("score: ", score_node_map[min_child.value]) 
-		*/
 	}
+	console.log("Minimax nodes visited: ", nodes_visited)
 	return start_max ? max_child : min_child
 }
 
@@ -247,3 +321,57 @@ export const normalize = (board, num_rows) => {
 	return canonical_form
 }
 
+const no_transformation = "no transformation"
+const rotate_90_string = "rotate 90"
+const rotate_180_string = "rotate 180"
+const rotate_270_string = "rotate 270"
+const flip_horizontal_string = "flip horizontal"
+const flip_vertical_string = "flip vertical"
+const flip_horizontal_and_rotate_90_string = "flip horizontal and rotate 90"
+const flip_vertical_and_rotate_90_string = "flip vertical and rotate 90"
+
+export const normalize_with_transformation_info = (board, num_rows) => {
+	const transformations = []
+	transformations.push([board, no_transformation])
+	transformations.push([rotate_board_90(board, num_rows), rotate_90_string])
+	transformations.push([rotate_board_180(board, num_rows), rotate_180_string])
+	transformations.push([rotate_board_270(board, num_rows), rotate_270_string])
+	transformations.push([flip_horizontal(board, num_rows), flip_horizontal_string])
+	transformations.push([flip_vertical(board, num_rows), flip_vertical_string])
+	transformations.push([rotate_board_90(flip_horizontal(board, num_rows), num_rows), 
+		flip_horizontal_and_rotate_90_string])
+	transformations.push([rotate_board_90(flip_vertical(board, num_rows), num_rows), 
+		flip_vertical_and_rotate_90_string])
+	let [canonical_form, canonical_form_transformation_info] = transformations[0]
+	for(const [transformed_board, transformed_board_info] of transformations) {
+		if(transformed_board.toString().localeCompare(canonical_form.toString()) < 0) {
+			canonical_form = transformed_board
+			canonical_form_transformation_info = transformed_board_info
+		}
+	}
+	return [canonical_form, canonical_form_transformation_info]
+}
+
+export const denormalize = (old_board, board, num_rows) => {
+	const transformations = []
+	transformations.push(board)
+	transformations.push(rotate_board_90(board, num_rows))
+	transformations.push(rotate_board_180(board, num_rows))
+	transformations.push(rotate_board_270(board, num_rows))
+	transformations.push(flip_horizontal(board, num_rows))
+	transformations.push(flip_vertical(board, num_rows))
+	transformations.push(rotate_board_90(flip_horizontal(board, num_rows), num_rows))
+	transformations.push(rotate_board_90(flip_vertical(board, num_rows), num_rows))
+	for(const transformed_board of transformations) {
+		let num_different_characters = 0
+		for(let i = 0; i < transformed_board.length; ++i) {
+			if(transformed_board[i] !== old_board[i]) {
+				num_different_characters++
+			}
+		}
+		if(num_different_characters === 1) {
+			return transformed_board
+		}
+	}
+	return null 
+}

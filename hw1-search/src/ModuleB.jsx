@@ -4,7 +4,7 @@ import {useState} from 'react'
 import sleep from './sleep.js'
 import * as user_settings from './TicTacToeSettings.jsx'
 import TreeNode from './Tree.js'
-import {run_minimax_on_game_tree, get_all_moves_normalized, construct_base_game_tree, check_win, normalize} from './gameTreeFunctions.js'
+import {run_minimax_on_game_tree, run_alpha_beta_pruning_on_game_tree, get_all_moves_normalized, construct_base_game_tree, check_win, normalize, denormalize} from './gameTreeFunctions.js'
 import {turn_to_2d, board_string_to_array} from './boardFunctions.js'
 function TicTacToeHeader({selected_mode, set_selected_mode}) {
 	const choose_mode_text = "Choose Mode"
@@ -37,14 +37,17 @@ function BoardImage({value, color, row_idx, col_idx}) {
 
 
 const do_ai_move = async (game_tree, board, num_rows, character) => {
-	await sleep(1000)
-	const ai_char = user_settings.min_char
+	//await sleep(1000)
 	const board_normalized = normalize(board, num_rows)
 	const game_tree_after_move = game_tree.children.filter((x) => x.value === board_normalized.toString())[0]
+	console.log("Board normalized: ", board_normalized)
 	console.log("GAME TREE AFTER MOVE: ", game_tree_after_move)
 	const res = run_minimax_on_game_tree(game_tree_after_move, num_rows, character)
+	const res2 = run_alpha_beta_pruning_on_game_tree(game_tree_after_move, num_rows, character)
 	console.log("RES: ", res)
-	return res 
+	const denormalized_board = denormalize(board, board_string_to_array(res.value, num_rows), num_rows)
+	console.log("denormalized board: ", denormalized_board)
+	return [res, denormalized_board] 
 }
 
 function BoardDisplay({board, num_rows, x_color, o_color, set_board, ui_lock, set_ui_lock, game_tree, set_game_tree}) {
@@ -86,9 +89,11 @@ function BoardDisplay({board, num_rows, x_color, o_color, set_board, ui_lock, se
 		set_board(new_board)
 		set_ui_lock(true)
 		const perform_ai_move = async () => {
-			const ai_move = await do_ai_move(game_tree, new_board, num_rows, user_settings.o_char)
-			set_board(board_string_to_array(ai_move.value))
-			set_game_tree(ai_move)
+			const [tree_after_ai_move, board_after_ai_move] = await do_ai_move(game_tree, new_board, num_rows, user_settings.o_char)
+			set_board(board_after_ai_move)
+			set_game_tree(tree_after_ai_move)
+			console.log("Tree after ai move: ", tree_after_ai_move)
+			console.log("Board after ai move: ", board_after_ai_move)
 		}
 		perform_ai_move().then(() => set_ui_lock(false))
 	}
