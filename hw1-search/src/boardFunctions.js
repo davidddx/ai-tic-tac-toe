@@ -19,6 +19,10 @@ export const rotate_board_270 = (board, num_rows) => {
 	return rotate_board_180(rotated_90, num_rows)
 }
 
+export const board_string_to_array = (string) => {
+	return string.split(',')	
+}
+
 export const rotate_board_180 = (board, num_rows) => {
 	return [...board].reverse()	
 }

@@ -4,8 +4,8 @@ import {useState} from 'react'
 import sleep from './sleep.js'
 import * as user_settings from './TicTacToeSettings.jsx'
 import TreeNode from './Tree.js'
-import {get_all_moves_normalized, construct_base_game_tree, check_win} from './gameTreeFunctions.js'
-import {turn_to_2d} from './boardFunctions.js'
+import {run_minimax_on_game_tree, get_all_moves_normalized, construct_base_game_tree, check_win, normalize} from './gameTreeFunctions.js'
+import {turn_to_2d, board_string_to_array} from './boardFunctions.js'
 function TicTacToeHeader({selected_mode, set_selected_mode}) {
 	const choose_mode_text = "Choose Mode"
 	const class_name = "attribute-dropdown"
@@ -29,21 +29,25 @@ function BoardImage({value, color, row_idx, col_idx}) {
 	const class_name = "center fit tic-tac-toe-image"
 	const img_src = user_settings.get_image(value, color)
 	return (
-		<div className={class_name} >
+		<div className={class_name} row_idx={row_idx} col_idx={col_idx}>
 			{img_src !== user_settings.none_char && <img className={class_name} src={img_src} row_idx={row_idx} col_idx={col_idx}/>}
 		</div>
 	)
 }
 
 
-const do_ai_move = async (board) => {
+const do_ai_move = async (game_tree, board, num_rows, character) => {
 	await sleep(1000)
-	return board 
+	const ai_char = user_settings.min_char
+	const board_normalized = normalize(board, num_rows)
+	const game_tree_after_move = game_tree.children.filter((x) => x.value === board_normalized.toString())[0]
+	console.log("GAME TREE AFTER MOVE: ", game_tree_after_move)
+	const res = run_minimax_on_game_tree(game_tree_after_move, num_rows, character)
+	console.log("RES: ", res)
+	return res 
 }
 
-const base_game_tree = construct_base_game_tree()  
-
-function BoardDisplay({board, num_rows, x_color, o_color, set_board, ui_lock, set_ui_lock}) {
+function BoardDisplay({board, num_rows, x_color, o_color, set_board, ui_lock, set_ui_lock, game_tree, set_game_tree}) {
 	const board_wrapper_classname = "board-wrapper"
 	const board_2d = turn_to_2d(board, num_rows)
 	const row_class_name = "tic-tac-toe-row"
@@ -59,12 +63,17 @@ function BoardDisplay({board, num_rows, x_color, o_color, set_board, ui_lock, se
 	}
 	const on_click = (e) => {
 		if(ui_lock) {
+			console.log("Clicked but ui is locked")
 			return
 		}
 		const target = e.target
-		if(target.tagName !== "IMG") {
+		if(target.tagName !== "DIV") {
 			return
 		}
+		if(!target.classList.contains('tic-tac-toe-image')) {
+			return
+		}
+		console.log("Clicked. Target: ", target)
 		const attributes = target.attributes
 		const row_value = parseInt(attributes['row_idx'].value)
 		const col_value = parseInt(attributes['col_idx'].value)
@@ -77,8 +86,9 @@ function BoardDisplay({board, num_rows, x_color, o_color, set_board, ui_lock, se
 		set_board(new_board)
 		set_ui_lock(true)
 		const perform_ai_move = async () => {
-			const ai_move = await do_ai_move(new_board)	
-			set_board(ai_move)
+			const ai_move = await do_ai_move(game_tree, new_board, num_rows, user_settings.o_char)
+			set_board(board_string_to_array(ai_move.value))
+			set_game_tree(ai_move)
 		}
 		perform_ai_move().then(() => set_ui_lock(false))
 	}
@@ -92,12 +102,14 @@ function BoardDisplay({board, num_rows, x_color, o_color, set_board, ui_lock, se
 
 function TicTacToePuzzle({mode, num_rows, x_color, o_color}) {
 	const [board, set_board] = useState(user_settings.default_tic_tac_toe)
+	const [game_tree, set_game_tree] = useState(construct_base_game_tree(user_settings.default_num_rows))
+	console.log("Game tree: ", game_tree)
 	const [ui_lock, set_ui_lock] = useState(false)
 	console.log("NORMALIZED num_rows=3: ", get_all_moves_normalized(['', '', '', '', '', '', '', '', ''], num_rows, user_settings.x_char))
 	console.log("NORMALIZED num_rows=4: ", get_all_moves_normalized(['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''], 4, user_settings.x_char))
 	console.log("NORMALIZED num_rows=5: ", get_all_moves_normalized(['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''], 5, user_settings.x_char))
 	return (
-		<BoardDisplay board={board} num_rows={num_rows} x_color={x_color} o_color={o_color} set_board={set_board} ui_lock={ui_lock} set_ui_lock={set_ui_lock}/>
+		<BoardDisplay board={board} num_rows={num_rows} x_color={x_color} o_color={o_color} set_board={set_board} ui_lock={ui_lock} set_ui_lock={set_ui_lock} game_tree={game_tree} set_game_tree={set_game_tree}/>
 	)
 
 }
