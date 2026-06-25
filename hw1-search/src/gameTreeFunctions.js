@@ -102,28 +102,45 @@ export const construct_base_game_tree = (num_rows) => {
 	for(let i = 0; i < num_rows*num_rows; ++i) {
 		default_board.push(user_settings.none_char)
 	}
-	const queue = []
+	const queue = [] 
 	const root = new TreeNode(default_board.toString())
 	const max_char = user_settings.max_char
 	const min_char = user_settings.min_char
+	const visited = {}
 	queue.push([max_char, root])
+	let nodes = 0
+	let max_queue_length = Number.MIN_SAFE_INTEGER
 	while(queue.length > 0) {
 		const [curr_char, board_tree] = queue.shift()
 		const board_string = board_tree.value
+		max_queue_length = Math.max(max_queue_length, queue.length)
+		if(board_string in visited) {
+			board_tree.children = visited[board_string].children
+			continue
+		}
+		nodes += 1
 		const board = board_string_to_array(board_string)
 		const succeeding_states = get_all_moves_normalized(board, num_rows, curr_char) 
 		const succeeding_nodes = succeeding_states.map((s) => new TreeNode(s.toString()))
 		const filtered_nodes = succeeding_nodes.filter((node) => !check_terminal(board_string_to_array(node.value), num_rows))
-		for(const node of succeeding_nodes) {
-			board_tree.children.push(node)
-		}
 		let next_char = min_char
 		if(curr_char === min_char) {
 			next_char = max_char
 		}
+		for(const node of succeeding_nodes) {
+			if(node.value in visited) {
+				board_tree.children.push(visited[node.value])
+				continue
+			}
+			board_tree.children.push(node)
+		}
 		for(const node of filtered_nodes) {
+			if(node.value in visited) {
+				continue
+			}
 			queue.push([next_char, node])
 		}
+		visited[board_string] = board_tree 
 	}
 	return root 
 }

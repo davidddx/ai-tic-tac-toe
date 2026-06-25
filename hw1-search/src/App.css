@@ -199,10 +199,16 @@
 .eight-puzzle-footer {
 
 }
-.eight-puzzle-header, .tic-tac-toe-header {
+.eight-puzzle-header{
 	display: flex;
 	flex-direction: row;
 	justify-content: space-around;
+}
+.tic-tac-toe-header {
+	display: flex;
+	flex-direction: column;
+	justify-content: space-around;
+	align-items: center;
 }
 .puzzle-header-button, .puzzle-header-button-hover {
 	font-size: 12px;
