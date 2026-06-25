@@ -2,7 +2,6 @@ import {Dropdown} from './Button.jsx'
 import {useState} from 'react'
 import sleep from './sleep.js'
 import * as user_settings from './TicTacToeSettings.jsx'
-import TreeNode from './Tree.js'
 import {run_minimax_on_game_tree, run_alpha_beta_pruning_on_game_tree, construct_base_game_tree, check_win, normalize, denormalize, check_draw, check_terminal} from './gameTreeFunctions.js'
 import {turn_to_2d, board_string_to_array} from './boardFunctions.js'
 function TicTacToeHeader({settings, set_settings, set_board, set_game_tree}) {
@@ -14,6 +13,17 @@ function TicTacToeHeader({settings, set_settings, set_board, set_game_tree}) {
 		const text = options[options.selectedIndex].textContent
 		const cpy = settings.get_copy()
 		cpy.mode = text
+		if(text === user_settings.ai_vs_ai_mode) {
+			cpy.first_to_move = user_settings.ai_1
+			cpy.ai_1_char = user_settings.x_char
+			cpy.ai_2_char = user_settings.o_char
+		}
+		else if(text === user_settings.player_vs_player_mode) {
+			cpy.first_to_move = user_settings.player_1
+		}
+		else {
+			cpy.first_to_move = user_settings.player
+		}
 		set_settings(cpy)
 		set_board(user_settings.default_tic_tac_toe)
 		set_game_tree(construct_base_game_tree(settings.num_rows))
@@ -24,6 +34,10 @@ function TicTacToeHeader({settings, set_settings, set_board, set_game_tree}) {
 		const text = options[options.selectedIndex].textContent
 		const cpy = settings.get_copy()
 		cpy.first_to_move = text
+		if(cpy.mode === user_settings.ai_vs_ai_mode) {
+			cpy.ai_1_char = user_settings.x_char
+			cpy.ai_2_char = user_settings.o_char
+		}
 		set_settings(cpy)
 		set_board(user_settings.default_tic_tac_toe)
 		set_game_tree(construct_base_game_tree(settings.num_rows))
@@ -127,7 +141,6 @@ function TicTacToeHeader({settings, set_settings, set_board, set_game_tree}) {
 function BoardImage({value, color, row_idx, col_idx}) {
 	const class_name = "center fit tic-tac-toe-image"
 	const img_src = user_settings.get_image(value, color)
-	console.log("row, col, value: ", [row_idx, col_idx, value])
 	return (
 		<div className={class_name} row_idx={row_idx} col_idx={col_idx}>
 			{img_src !== user_settings.none_char && <img className={class_name} src={img_src} row_idx={row_idx} col_idx={col_idx}/>}
@@ -158,6 +171,7 @@ const do_ai_move_first = async (game_tree, board, num_rows, character) => {
 	const res = run_minimax_on_game_tree(game_tree, num_rows, character)
 	const res2 = run_alpha_beta_pruning_on_game_tree(game_tree, num_rows, character)
 	console.log("RES: ", res)
+	console.log("RES 2: ", res2)
 	const denormalized_board = denormalize(board, board_string_to_array(res2.value, num_rows), num_rows)
 	console.log("denormalized board: ", denormalized_board)
 	return [res2, denormalized_board] 
@@ -179,13 +193,11 @@ function BoardDisplay({board, set_board, ui_lock, set_ui_lock, game_tree, set_ga
 	const board_2d = turn_to_2d(board, settings.num_rows)
 	const row_class_name = "tic-tac-toe-row"
 	let invert_chars = false
-	if(settings.mode === user_settings.player_vs_ai_mode) {
-		if(settings.first_to_move === user_settings.player && settings.user_char === user_settings.o_char) {
-			invert_chars = true
-		}
-		else if(settings.first_to_move === user_settings.ai && settings.ai_char === user_settings.o_char) {
-			invert_chars = true
-		}
+	if(settings.first_to_move === user_settings.player && settings.user_char === user_settings.o_char) {
+		invert_chars = true
+	}
+	else if(settings.first_to_move === user_settings.ai && settings.ai_char === user_settings.o_char) {
+		invert_chars = true
 	}
 	const generate_row = (entry, row_index) => {
 
@@ -195,8 +207,6 @@ function BoardDisplay({board, set_board, ui_lock, set_ui_lock, game_tree, set_ga
 		if(invert_chars) {
 			new_entry = entry.map((x) => invert(x)) 
 		}
-		console.log("ENTRY: ", entry)
-		console.log("NEW ENTRY: ", new_entry)
 		return (
 			<div className={row_class_name}>
 				{new_entry.map((x, index) => <BoardImage key={index} value={x} color={x === user_settings.x_char ? x_char_color : o_char_color} row_idx={row_index} col_idx={index}/>)}
@@ -263,6 +273,73 @@ function BoardDisplay({board, set_board, ui_lock, set_ui_lock, game_tree, set_ga
 	}
 	return (
 		<div className={board_wrapper_classname} onClick={on_click}>
+			{board_2d.map((entry, index) => generate_row(entry, index))} 
+		</div>
+	)
+
+}
+
+function BoardDisplayAIvsAI({board, set_board, game_tree, set_game_tree, settings, turn, set_turn}) {
+	const board_wrapper_classname = "board-wrapper"
+	const board_2d = turn_to_2d(board, settings.num_rows)
+	const row_class_name = "tic-tac-toe-row"
+	let invert_chars = false
+	if(settings.first_to_move === user_settings.ai_1) {
+		if(settings.ai_1_char === user_settings.o_char) {
+			invert_chars = true
+		}
+	}
+	if(settings.first_to_move === user_settings.ai_2) {
+		if(settings.ai_2_char === user_settings.o_char) {
+			invert_chars = true
+		}
+	}
+	const generate_row = (entry, row_index) => {
+
+		const x_char_color = settings.x_color
+		const o_char_color = settings.o_color
+		let new_entry = entry
+		if(invert_chars) {
+			new_entry = entry.map((x) => invert(x)) 
+		}
+		console.log("ENTRY: ", entry)
+		console.log("NEW ENTRY: ", new_entry)
+		return (
+			<div className={row_class_name}>
+				{new_entry.map((x, index) => <BoardImage key={index} value={x} color={x === user_settings.x_char ? x_char_color : o_char_color} row_idx={row_index} col_idx={index}/>)}
+			</div>
+		)
+	}
+	if(check_win(board, user_settings.x_char, settings.num_rows)) {
+		console.log("YOU WIN!!!")
+	}
+	else if(check_draw(board, settings.num_rows)) {
+		console.log("DRAW!")
+	}
+	else {
+		if(turn === settings.first_to_move) {
+			const perform_ai_move = async (new_board) => {
+				const [tree_after_ai_move, board_after_ai_move] = await do_ai_move_first(game_tree, new_board, settings.num_rows, user_settings.x_char)
+				set_board(board_after_ai_move)
+				set_game_tree(tree_after_ai_move)
+			}
+			perform_ai_move(board).then( () => 
+				set_turn(settings.first_to_move === user_settings.ai_1 ? user_settings.ai_2 : user_settings.ai_1)
+			)
+		}
+		else {
+			const perform_ai_move = async (new_board) => {
+				const [tree_after_ai_move, board_after_ai_move] = await do_ai_move_first(game_tree, new_board, settings.num_rows, user_settings.o_char)
+				set_board(board_after_ai_move)
+				set_game_tree(tree_after_ai_move)
+			}
+			perform_ai_move(board).then(() => 
+				set_turn(settings.first_to_move === user_settings.ai_1 ? user_settings.ai_1 : user_settings.ai_2)
+			)
+		}
+	}
+	return (
+		<div className={board_wrapper_classname}>
 			{board_2d.map((entry, index) => generate_row(entry, index))} 
 		</div>
 	)
@@ -360,6 +437,7 @@ function TicTacToePuzzle({settings, board, set_board, game_tree, set_game_tree})
 	console.log("board: ", board)
 	console.log("ui lock: ", ui_lock)
 	console.log("settings: ", settings)
+	console.log("TURN: ", turn)
 	let ui_lock_val = ui_lock
 	if(board.toString() === user_settings.default_tic_tac_toe.toString() && settings.mode === user_settings.player_vs_ai_mode && settings.first_to_move === user_settings.ai) {
 		ui_lock_val = true
@@ -373,11 +451,15 @@ function TicTacToePuzzle({settings, board, set_board, game_tree, set_game_tree})
 	else if(ui_lock && board.toString() === user_settings.default_tic_tac_toe.toString() && settings.mode === user_settings.player_vs_ai_mode && settings.first_to_move === user_settings.player) {
 		set_ui_lock(false)
 	}
+	if(settings.mode === user_settings.ai_vs_ai_mode && (turn !== user_settings.ai_1 && turn !== user_settings.ai_2)){ 
+		set_turn(settings.first_to_move)
+	}
 	
 	return (
 		<div>
 		{settings.mode === user_settings.player_vs_ai_mode && <BoardDisplay board={board} set_board={set_board} ui_lock={ui_lock_val} set_ui_lock={set_ui_lock} game_tree={game_tree} set_game_tree={set_game_tree} settings={settings} turn={turn} set_turn={set_turn}/>}
 		{settings.mode === user_settings.player_vs_player_mode && <BoardDisplayPlayerVsPlayer board={board} set_board={set_board} ui_lock={ui_lock_val} set_ui_lock={set_ui_lock} settings={settings} turn={turn} set_turn={set_turn}/>}
+		{settings.mode === user_settings.ai_vs_ai_mode && <BoardDisplayAIvsAI board={board} set_board={set_board} settings={settings} turn={turn} set_turn={set_turn} game_tree={game_tree} set_game_tree={set_game_tree}/>}
 		</div>
 	)
 

@@ -2,6 +2,7 @@ import {useState} from 'react'
 import { Heap } from 'heap-js';
 import Button from './Button.jsx'
 import { Dropdown } from './Button.jsx'
+import sleep from './sleep.js'
 import UploadAndDisplayImage from './UploadAndDisplayImage.jsx'
 import * as user_settings from './EightPuzzleSettings.jsx'
 import recognize_image from './RecognizeImage.js'
