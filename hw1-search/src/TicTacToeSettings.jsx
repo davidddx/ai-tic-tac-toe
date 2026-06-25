@@ -11,7 +11,7 @@ export const ai_1 = "AI 1"
 export const ai_2 = "AI 2"
 export const default_first_to_move = player
 export const first_to_move_options_player_vs_ai = [player, ai]
-export const first_to_move_options_player_vs_player = [player_1, ai_2]
+export const first_to_move_options_player_vs_player = [player_1, player_2]
 export const first_to_move_options_ai_vs_ai = [ai_1, ai_2]
 export const red_color = "red"
 export const black_color = "black"
@@ -38,8 +38,8 @@ export const alpha_beta_pruning_algorithm_name = "Alpha-Beta Pruning"
 export const algorithm_options = [minimax_algorithm_name, alpha_beta_pruning_algorithm_name]
 const x_dir_path = './images/x_tic_tac_toe'
 const o_dir_path = './images/o_tic_tac_toe'
-export const user_char = x_char
-export const ai_char = o_char
+export const user_char = max_char
+export const ai_char = min_char
 export const get_image = (value, color) => {
 	console.assert(value === o_char || value === x_char || value === none_char, `INVALID VALUE ${value} TO GET IMAGE`)
 	if(value === none_char) {
@@ -55,6 +55,8 @@ export const get_image = (value, color) => {
 	base += `/${color}/${end}`
 	return base
 }
+export const player_1_char = x_char
+export const player_2_char = o_char
 
 export class UserSettings {
 	constructor() {
