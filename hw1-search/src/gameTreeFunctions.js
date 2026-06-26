@@ -113,7 +113,6 @@ export const construct_base_game_tree = (num_rows) => {
 	const min_char = user_settings.min_char
 	const visited = {}
 	queue.push([max_char, root])
-	let nodes = 0 // just to check for node count for comparative analysis
 	let max_queue_length = Number.MIN_SAFE_INTEGER
 	while(queue.length > 0) {
 		const [curr_char, board_tree] = queue.shift()
@@ -123,7 +122,6 @@ export const construct_base_game_tree = (num_rows) => {
 			board_tree.children = visited[board_string].children
 			continue
 		}
-		nodes += 1
 		const board = board_string_to_array(board_string)
 		const succeeding_states = get_all_moves_normalized(board, num_rows, curr_char) 
 		const succeeding_nodes = succeeding_states.map((s) => new TreeNode(s.toString()))
@@ -147,6 +145,8 @@ export const construct_base_game_tree = (num_rows) => {
 		}
 		visited[board_string] = board_tree 
 	}
+	// just to check for node count for comparative analysis
+	console.log("visited.length: ", Object.keys(visited).length)
 	return root 
 }
 

@@ -750,11 +750,14 @@ function PuzzleSettings({settings, set_settings, show}) {
 	)
 }
 
+const test_puzzle_1 = [8,1,3,4,user_settings.space_number,2,7,6,5]
+const test_puzzle_2 = [7, 1, 2, 5, 8, 3, 6, 4, user_settings.space_number ]
+const test_puzzle_3 = [7, 6, 3, 4, 1, 5, user_settings.space_number, 2, 8]
+
 function ModuleA({active}) {
 	const default_user_settings = new user_settings.UserSettings()
 	const [curr_user_settings, set_curr_user_settings] = useState(default_user_settings)
-	const test_puzzle = [8,1,3,4,user_settings.space_number,2,7,6,5]
-	const [puzzle_state, set_puzzle_state] = useState(test_puzzle)
+	const [puzzle_state, set_puzzle_state] = useState(test_puzzle_3)
 	const [show_settings, set_show_settings] = useState(true)
 	if(!active) {
 		return (null)
