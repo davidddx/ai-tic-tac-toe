@@ -3,6 +3,7 @@ import TreeNode from './Tree.js'
 import {rotate_board_90, rotate_board_180, rotate_board_270, flip_horizontal, flip_vertical, board_string_to_array} from './boardFunctions.js'
 import * as user_settings from './TicTacToeSettings.jsx'
 
+// checks if won given board, character, and num rows  
 export const check_win = (board, character, num_rows) => {
 	let solved = true 
 	// check horizontal 
@@ -58,6 +59,7 @@ export const check_win = (board, character, num_rows) => {
 	return solved 
 }
 
+//check if win possible
 export const check_win_possible = (board, num_rows) => {
 	//console.log("BOARD: ", board)
 	const check_x_board = board.map(item => item == user_settings.none_char ? user_settings.x_char : item)
@@ -71,6 +73,7 @@ export const check_win_possible = (board, num_rows) => {
 	return false 
 }
 
+// check draw
 export const check_draw = (board, num_rows) => {
 	const win_possible = check_win_possible(board, num_rows)
 	const x_win = check_win(board, user_settings.x_char, num_rows)
@@ -84,6 +87,7 @@ export const check_draw = (board, num_rows) => {
 	return true
 }
 
+// check if terminal state
 export const check_terminal = (board, num_rows) => {
 	if(check_draw(board, num_rows)) {
 		return true
@@ -97,6 +101,7 @@ export const check_terminal = (board, num_rows) => {
 	return false
 }
 
+// creates the game tree
 export const construct_base_game_tree = (num_rows) => {
 	const default_board = []
 	for(let i = 0; i < num_rows*num_rows; ++i) {
@@ -108,7 +113,7 @@ export const construct_base_game_tree = (num_rows) => {
 	const min_char = user_settings.min_char
 	const visited = {}
 	queue.push([max_char, root])
-	let nodes = 0
+	let nodes = 0 // just to check for node count for comparative analysis
 	let max_queue_length = Number.MIN_SAFE_INTEGER
 	while(queue.length > 0) {
 		const [curr_char, board_tree] = queue.shift()
@@ -145,10 +150,14 @@ export const construct_base_game_tree = (num_rows) => {
 	return root 
 }
 
-const draw_value = 1
-const win_value = 2
-const lose_value = 0
+// values for minimax
+const draw_value = 0
+const win_value = 10
+const lose_value = -10
 
+// runs alpha beta pruning
+// assuming that max char is x and min char is o,
+// and that max char moves first
 export const run_alpha_beta_pruning_on_game_tree = (game_tree, num_rows, player_char) => {
 	const score_node_map = {}
 	const visited = new Set()
@@ -210,7 +219,10 @@ export const run_alpha_beta_pruning_on_game_tree = (game_tree, num_rows, player_
 	const start_max = player_char === max_char 
 	const initial_alpha = Number.MIN_SAFE_INTEGER
 	const initial_beta = Number.MAX_SAFE_INTEGER
+	const start = new Date().getTime();
 	const rv = minimax(game_tree, start_max, initial_alpha, initial_beta)
+	const end = new Date().getTime()
+	const solve_time = end - start
 	console.log("ALPHA-BETA PRUNING NODES VISITED: ", nodes_visited)
 	let max_child = null
 	let min_child = null
@@ -227,9 +239,11 @@ export const run_alpha_beta_pruning_on_game_tree = (game_tree, num_rows, player_
 			min_child = child
 		}
 	}
-	return start_max ? max_child : min_child
+	const node =  start_max ? max_child : min_child
+	return [node, solve_time, nodes_visited]
 }
 
+// same as above but minimax i.e. no alpha-beta pruning
 export const run_minimax_on_game_tree = (game_tree, num_rows, player_char) => {
 	const score_node_map = {}
 	const visited = new Set()
@@ -281,7 +295,10 @@ export const run_minimax_on_game_tree = (game_tree, num_rows, player_char) => {
 		}
 	}
 	const start_max = player_char === max_char 
+	const start = new Date().getTime();
 	const rv = minimax(game_tree, start_max)
+	const end = new Date().getTime();
+	const solve_time = end - start
 	let max_child = null
 	let min_child = null
 	for(const child of game_tree.children) {
@@ -298,9 +315,11 @@ export const run_minimax_on_game_tree = (game_tree, num_rows, player_char) => {
 		}
 	}
 	console.log("Minimax nodes visited: ", nodes_visited)
-	return start_max ? max_child : min_child
+	const node = start_max ? max_child : min_child
+	return [node, solve_time, nodes_visited]
 }
 
+//gets all possible moves of board and normalizes for smaller state space.
 export const get_all_moves_normalized = (board, num_rows, character) => {
 	const rv_set = new Set()
 	for(let i = 0; i < num_rows; ++i) {
@@ -319,6 +338,7 @@ export const get_all_moves_normalized = (board, num_rows, character) => {
 	return rv
 }
 
+// normalization function on lexicographic order
 export const normalize = (board, num_rows) => {
 	const transformations = []
 	transformations.push(board)
@@ -338,37 +358,7 @@ export const normalize = (board, num_rows) => {
 	return canonical_form
 }
 
-const no_transformation = "no transformation"
-const rotate_90_string = "rotate 90"
-const rotate_180_string = "rotate 180"
-const rotate_270_string = "rotate 270"
-const flip_horizontal_string = "flip horizontal"
-const flip_vertical_string = "flip vertical"
-const flip_horizontal_and_rotate_90_string = "flip horizontal and rotate 90"
-const flip_vertical_and_rotate_90_string = "flip vertical and rotate 90"
-
-export const normalize_with_transformation_info = (board, num_rows) => {
-	const transformations = []
-	transformations.push([board, no_transformation])
-	transformations.push([rotate_board_90(board, num_rows), rotate_90_string])
-	transformations.push([rotate_board_180(board, num_rows), rotate_180_string])
-	transformations.push([rotate_board_270(board, num_rows), rotate_270_string])
-	transformations.push([flip_horizontal(board, num_rows), flip_horizontal_string])
-	transformations.push([flip_vertical(board, num_rows), flip_vertical_string])
-	transformations.push([rotate_board_90(flip_horizontal(board, num_rows), num_rows), 
-		flip_horizontal_and_rotate_90_string])
-	transformations.push([rotate_board_90(flip_vertical(board, num_rows), num_rows), 
-		flip_vertical_and_rotate_90_string])
-	let [canonical_form, canonical_form_transformation_info] = transformations[0]
-	for(const [transformed_board, transformed_board_info] of transformations) {
-		if(transformed_board.toString().localeCompare(canonical_form.toString()) < 0) {
-			canonical_form = transformed_board
-			canonical_form_transformation_info = transformed_board_info
-		}
-	}
-	return [canonical_form, canonical_form_transformation_info]
-}
-
+// reverses normalization given old_board state and current board. 
 export const denormalize = (old_board, board, num_rows) => {
 	const transformations = []
 	transformations.push(board)

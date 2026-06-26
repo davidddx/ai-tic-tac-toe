@@ -78,6 +78,7 @@
 .settings-subsection-body {
 	display: flex;
 	flex-direction: column;
+	align-items: center;
 	font-size: 12px;
 }
 .settings-attribute, .settings-attribute-hover, .settings-attribute-selected {
@@ -147,6 +148,7 @@
 .settings-subsection-attribute-name {
 	padding: 2px;
 	font-size: 14px;
+	text-align: center;
 }
 .eight-puzzle {
 	width: 220px;
@@ -230,8 +232,37 @@
 	margin: 5px;
 	font-weight: bold;
 }
+.puzzle-subtitle {
+	font-size: 18px;
+	margin: 5px;
+	font-weight: bold;
+}
 .tic-tac-toe-image {
 	border-style: solid;
 	border-color: var(--border);
 	border-width: 2px;
+}
+.tic-tac-toe-footer-button, .tic-tac-toe-footer-button-hover {
+	font-size: 16px;
+	border-width: 2px;
+	border-style: solid;
+	padding: 2px;
+	border-radius: 10px;
+	cursor: pointer;
+	margin: 2px;
+}
+.tic-tac-toe-footer-button {
+	border-color: var(--border);
+}
+.tic-tac-toe-footer-button-hover {
+	border-color: var(--highlight);
+}
+.tic-tac-toe-footer-result {
+	font-weight: bold;
+	margin: 5px;
+}
+.tic-tac-toe-footer-wrapper {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
 }

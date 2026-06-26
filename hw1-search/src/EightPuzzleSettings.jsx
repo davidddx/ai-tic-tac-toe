@@ -1,3 +1,4 @@
+// settings & important constants/functions for eight puzzle
 export const default_image_dir = "./images"
 export const red_color = "red"
 export const black_color = "black"
@@ -18,7 +19,7 @@ export const misc_subsection = "Misc"
 export const box_subsection = "Puzzle Box"
 export const images_subsection = "Images"
 export const no_subsection = "none"
-export const settings_subsections = [images_subsection, misc_subsection, box_subsection]
+export const settings_subsections = [images_subsection]
 export const min_image_number = 1
 export const max_image_number = 8
 export const space_number = 0
@@ -90,6 +91,7 @@ export const get_color_by_path = (number, path) => {
 	
 }
 
+// user settings for 8 puzzle
 export class UserSettings {
 	constructor() {
 		this.image_paths = default_image_paths  

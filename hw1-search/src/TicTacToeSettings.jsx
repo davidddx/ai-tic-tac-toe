@@ -1,3 +1,5 @@
+// settings & some constants for tic tac toe 
+
 export const player_vs_ai_mode = "Player vs AI"
 export const ai_vs_ai_mode = "AI vs AI"
 export const player_vs_player_mode = "Player vs Player"
@@ -9,6 +11,9 @@ export const player_2 = "Player 2"
 export const ai = "AI"
 export const ai_1 = "AI 1"
 export const ai_2 = "AI 2"
+export const ai_algorithm = "AI algorithm"
+export const ai_1_algorithm = "AI 1 algorithm"
+export const ai_2_algorithm = "AI 2 algorithm"
 export const default_first_to_move = player
 export const first_to_move_options_player_vs_ai = [player, ai]
 export const first_to_move_options_player_vs_player = [player_1, player_2]
@@ -58,6 +63,7 @@ export const get_image = (value, color) => {
 export const player_1_char = x_char
 export const player_2_char = o_char
 
+// represents the settings of board
 export class UserSettings {
 	constructor() {
 		this.mode = default_mode
@@ -71,21 +77,27 @@ export class UserSettings {
 		this.ai_2_char = o_char
 		this.user_1_char = x_char
 		this.user_2_char = o_char
-		this.algorithm = minimax_algorithm_name
+		this.ai_algorithm = minimax_algorithm_name
 		this.ai_1_algorithm = minimax_algorithm_name
 		this.ai_2_algorithm = minimax_algorithm_name
 	}
 	get_copy() {
 		console.log("Getting copy of obj ", this)
 		const obj = new UserSettings()
-		obj.mode = this.mode
-		obj.first_to_move = this.first_to_move
-		obj.x_color = this.x_color
-		obj.o_color = this.o_color
-		obj.num_rows = this.num_rows
-		obj.user_char = this.user_char
+		obj.mode = this.mode 
+		obj.first_to_move = this.first_to_move 
+		obj.x_color = this.x_color 
+		obj.o_color = this.o_color 
+		obj.num_rows = this.num_rows 
+		obj.user_char = this.user_char 
+		obj.ai_char = this.ai_char  
 		obj.ai_1_char = this.ai_1_char
-		obj.algorithm = this.algorithm
+		obj.ai_2_char = this.ai_2_char
+		obj.user_1_char = this.user_1_char
+		obj.user_2_char = this.user_2_char 
+		obj.ai_algorithm = this.ai_algorithm
+		obj.ai_1_algorithm = this.ai_1_algorithm
+		obj.ai_2_algorithm = this.ai_2_algorithm
 		return obj
 	}
 }

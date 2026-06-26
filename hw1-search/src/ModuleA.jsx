@@ -13,6 +13,8 @@ const selected_class_name = "settings-subheading-selected"
 
 const image_id_name = "image-id"
 
+//adjacent indices in 8-puzzle given index
+//because i decided to store everything in a 1d array
 const get_adj_indices = (idx) => {
 	const rv = []
 	const [row, col] = get_2d_pos(idx)
@@ -72,7 +74,7 @@ const is_valid_puzzle = (puzzle_to_check) => {
 
 const generate_shuffled_puzzle = () => {
 	const default_arr = [...solved_puzzle] 
-	let shuffled = default_arr 
+	const shuffled = default_arr 
 	console.log("Shuffled: ", shuffled)
 	while(!is_valid_puzzle(shuffled) || shuffled.toString() === solved_puzzle.toString()) {
 		console.log("Shuffled: ", shuffled)
@@ -133,7 +135,7 @@ function dijkstra(puzzle_state) {
 	const pq = new Heap(min_comparator)
 	pq.init([[0, source]])
 	let n = 0
-	let N = 362880
+	const N = 362880
 	const paths = {}
 	paths[source] = []
 	while(!pq.isEmpty() && n < N) {
@@ -620,6 +622,7 @@ function PuzzleSubheading({text, active_subheading}) {
 
 }
 
+
 function SettingsImagesEntry({image_number, curr_image, set_image, set_is_default, color}) {
 	console.assert(image_number >= user_settings.min_image_number && image_number <= user_settings.max_image_number)
 	const default_text = "Default"
@@ -678,21 +681,6 @@ function SettingsImagesSubsection({curr_images, set_image, set_is_default, color
 	return (
 		<div className="settings-subsection-body">
 			{image_numbers.map((x) => (<SettingsImagesEntry image_number={x} curr_image={curr_images[x]} set_image={(image_path) => set_image(x, image_path)} set_is_default={(a) => set_is_default(x,a)} color={colors[x]}/>))}
-		</div>
-	)
-}
-
-function SettingsBoxSubsection({}) {
-	return (
-		<div className="settings-subsection-body">
-		</div>	
-	)
-}
-
-function SettingsMiscSubsection({}) {
-	return (
-		<div className="settings-subsection-body">
-
 		</div>
 	)
 }
@@ -756,8 +744,6 @@ function PuzzleSettings({settings, set_settings, show}) {
 		<div className="eight-puzzle-settings-container">
 			<PuzzleSettingsHeader active_subsection={active_subsection} set_active_subsection={set_active_subsection}/>
 			<div className="settings-body-container">
-				{active_subsection === user_settings.misc_subsection && (<SettingsMiscSubsection/>)}
-				{active_subsection === user_settings.box_subsection && (<SettingsBoxSubsection/>)}
 				{active_subsection === user_settings.images_subsection && (<SettingsImagesSubsection curr_images={curr_images} set_image={set_image} set_is_default={set_is_default} colors={colors}/>)}
 			</div>
 		</div>
