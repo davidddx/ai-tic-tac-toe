@@ -5,7 +5,6 @@ import { Dropdown } from './Button.jsx'
 import sleep from './sleep.js'
 import UploadAndDisplayImage from './UploadAndDisplayImage.jsx'
 import * as user_settings from './EightPuzzleSettings.jsx'
-import recognize_image from './RecognizeImage.js'
 
 const class_name = "settings-subheading" 
 const hover_class_name = "settings-subheading-hover"
