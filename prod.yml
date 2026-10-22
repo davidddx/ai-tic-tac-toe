@@ -1,0 +1,4 @@
+services:
+  frontend:
+    build: .
+    container_name: tictactoe-frontend 
