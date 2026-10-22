@@ -15,5 +15,6 @@ COPY default.conf /etc/nginx/conf.d/default.conf
 # Copy the static production build files from the builder stage
 # (Vite outputs to /app/dist by default; change to /app/build if using Create React App)
 COPY --from=builder /app/dist /usr/share/nginx/html
+COPY images /usr/share/nginx/html/images
 
 CMD ["nginx", "-g", "daemon off;"]
