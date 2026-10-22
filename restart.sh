@@ -3,7 +3,7 @@ docker container stop tictactoe-frontend
 docker container rm tictactoe-frontend
 docker rmi ai-tic-tac-toe-frontend
 if [[ "$1" == "prod" ]]; then
-	docker compose up -f prod.yml -d
+	docker compose -f prod.yml up -d
 else
-	docker compose up -f dev.yml -d
+	docker compose -f dev.yml up  -d
 fi
