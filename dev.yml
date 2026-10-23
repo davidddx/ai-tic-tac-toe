@@ -1,6 +1,6 @@
 services:
   frontend:
     build: .
-    container_name: tictactoe-frontend 
+    container_name: ai-tic-tac-toe-frontend-container 
     ports:
       - "8080:80"
