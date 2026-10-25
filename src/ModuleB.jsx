@@ -1,5 +1,5 @@
 import {Dropdown} from './Button.jsx'
-import {useState} from 'react'
+import {useState, useRef, useEffect} from 'react'
 import sleep from './sleep.js'
 import * as user_settings from './TicTacToeSettings.jsx'
 import Button from './Button.jsx'
@@ -16,7 +16,10 @@ function TicTacToeFooter({draw, player_won, ai_won, player_1_won, player_2_won, 
 	ai_2_minimax_visited,
 	ai_2_alpha_beta_pruning_time,
 	ai_2_alpha_beta_pruning_visited,
-	settings}) {
+	settings,
+	ui_lock,
+	set_ui_lock
+}) {
 
 	let result = ""
 	if(player_won) {
@@ -166,7 +169,7 @@ function TicTacToeFooter({draw, player_won, ai_won, player_1_won, player_2_won, 
 // Header for managing settings using a bunch of dropdowns 
 // just a bunch of button listeners and making options according
 // to current gamemode.
-function TicTacToeHeader({settings, set_settings, set_board, set_game_tree, default_game_tree, ai_vs_ai_done, set_ai_vs_ai_done, player_vs_ai_done, set_player_vs_ai_done}) {
+function TicTacToeHeader({settings, set_settings, set_board, set_game_tree, default_game_tree, ai_vs_ai_done, set_ai_vs_ai_done, player_vs_ai_done, set_player_vs_ai_done, set_ui_lock, turn, set_turn}) {
 	const choose_mode_text = "Choose Mode"
 	const first_to_move_text = "First to Move"
 	const class_name = "attribute-dropdown"
@@ -187,9 +190,11 @@ function TicTacToeHeader({settings, set_settings, set_board, set_game_tree, defa
 		else {
 			cpy.first_to_move = user_settings.player
 		}
+		set_turn(cpy.first_to_move)
 		set_settings(cpy)
 		set_board(user_settings.default_tic_tac_toe)
 		set_game_tree(default_game_tree)
+		set_ui_lock(false)
 		console.log("SETTING SETTINGS: ", cpy)
 	}
 	const on_change_first_to_move = (e) => {
@@ -206,6 +211,12 @@ function TicTacToeHeader({settings, set_settings, set_board, set_game_tree, defa
 		if(cpy.mode === user_settings.ai_vs_ai_mode) {
 			cpy.ai_1_char = user_settings.x_char
 			cpy.ai_2_char = user_settings.o_char
+			set_ai_vs_ai_done(false)
+			set_turn(user_settings.first_to_move)
+		}
+		if (cpy.mode === user_settings.player_vs_player_mode) {
+			set_ui_lock(false)
+			set_turn(cpy.first_to_move)
 		}
 		set_settings(cpy)
 		set_board(user_settings.default_tic_tac_toe)
@@ -350,7 +361,7 @@ function BoardImage({value, color, row_idx, col_idx}) {
 // does ai move assuming that board.toString() is one of the
 // values of a child node of game_tree.children
 const do_ai_move = async (game_tree, board, num_rows, character, algorithm) => {
-	await sleep(1000)
+	await sleep(10)
 	const board_normalized = normalize(board, num_rows)
 	const game_tree_after_move = game_tree.children.filter((x) => x.value === board_normalized.toString())[0]
 	console.log("Board normalized: ", board_normalized)
@@ -407,6 +418,10 @@ const invert = (character) => {
 	}
 	return user_settings.x_char
 }
+
+const player_vs_ai_id = 0
+const player_vs_player_id = 1
+const ai_vs_ai_id = 2
 
 // Player vs ai mode
 function BoardDisplay({board, set_board, ui_lock, set_ui_lock, game_tree, set_game_tree, settings, player_vs_ai_done, set_player_vs_ai_done,
@@ -478,6 +493,7 @@ function BoardDisplay({board, set_board, ui_lock, set_ui_lock, game_tree, set_ga
 		const algorithm = user_settings.ai_algorithm
 		const perform_ai_move = async () => {
 			let rv = []
+			const orig_board = new_board.toString()
 			if(settings.first_to_move === user_settings.player) {
 				rv = await do_ai_move(game_tree, new_board, settings.num_rows, user_settings.o_char, algorithm)
 			}
@@ -579,11 +595,12 @@ function BoardDisplayAIvsAI({board, set_board, game_tree, set_game_tree, setting
 				let res = res_pruning
 				if(first_to_move_algorithm === user_settings.minimax_algorithm_name) {
 					res = res_minimax
-					
-
 				}
 				const tree_after_ai_move = res[0]
-				set_board(board_after_ai_move)
+				const setboardrv = set_board(board_after_ai_move, ai_vs_ai_id)
+				if(setboardrv === -1) {
+					return
+				}
 				set_game_tree(tree_after_ai_move)
 				if(check_terminal(board_after_ai_move, settings.num_rows)) {
 					set_done(true)
@@ -600,9 +617,11 @@ function BoardDisplayAIvsAI({board, set_board, game_tree, set_game_tree, setting
 					set_ai_2_alpha_beta_pruning_time(res_pruning[1])
 					set_ai_2_alpha_beta_pruning_visited(res_pruning[2])
 				}
+				set_turn(settings.first_to_move === user_settings.ai_1 ? user_settings.ai_2 : user_settings.ai_1)
 			}
 			perform_ai_move(board).then( () => 
-				set_turn(settings.first_to_move === user_settings.ai_1 ? user_settings.ai_2 : user_settings.ai_1)
+				console.log("AAA")
+				//set_turn(settings.first_to_move === user_settings.ai_1 ? user_settings.ai_2 : user_settings.ai_1)
 			)
 		}
 		else if(turn === next_to_move) {
@@ -613,7 +632,10 @@ function BoardDisplayAIvsAI({board, set_board, game_tree, set_game_tree, setting
 					res = res_minimax	
 				}
 				const tree_after_ai_move = res[0]
-				set_board(board_after_ai_move)
+				const setboardrv = set_board(board_after_ai_move, ai_vs_ai_id)
+				if(setboardrv === -1) {
+					return
+				}
 				set_game_tree(tree_after_ai_move)
 				if(check_terminal(board_after_ai_move, settings.num_rows)) {
 					set_done(true)
@@ -630,9 +652,11 @@ function BoardDisplayAIvsAI({board, set_board, game_tree, set_game_tree, setting
 					set_ai_2_alpha_beta_pruning_time(res_pruning[1])
 					set_ai_2_alpha_beta_pruning_visited(res_pruning[2])
 				}
+				set_turn(settings.first_to_move === user_settings.ai_1 ? user_settings.ai_1 : user_settings.ai_2)
 			}
 			perform_ai_move(board).then(() => 
-				set_turn(settings.first_to_move === user_settings.ai_1 ? user_settings.ai_1 : user_settings.ai_2)
+				console.log("AAA")
+				//set_turn(settings.first_to_move === user_settings.ai_1 ? user_settings.ai_1 : user_settings.ai_2)
 			)
 		}
 	}
@@ -650,14 +674,15 @@ function BoardDisplayPlayerVsPlayer({board, ui_lock, settings, turn, set_board, 
 	const board_2d = turn_to_2d(board, settings.num_rows)
 	const row_class_name = "tic-tac-toe-row"
 	let invert_chars = false
-	if(settings.mode === user_settings.player_vs_ai_mode) {
+	if(settings.mode === user_settings.player_vs_player_mode) {
 		if(settings.first_to_move === user_settings.player_1 && settings.user_1_char === user_settings.o_char) {
 			invert_chars = true
 		}
-		else if(settings.first_to_move === user_settings.player_2 && settings.user_2_char === user_settings.o_char) {
+		else if(settings.first_to_move === user_settings.player_2 && settings.user_2_char === user_settings.x_char) {
 			invert_chars = true
 		}
 	}
+	console.log("INVERT CHARS: ",invert_chars)
 	const generate_row = (entry, row_index) => {
 
 		const x_char_color = settings.x_color
@@ -739,11 +764,12 @@ function TicTacToePuzzle({settings, board, set_board, game_tree, set_game_tree, 
 	set_ai_2_minimax_time,
 	set_ai_2_minimax_visited,
 	set_ai_2_alpha_beta_pruning_time,
-	set_ai_2_alpha_beta_pruning_visited
-
+	set_ai_2_alpha_beta_pruning_visited,
+	ui_lock,
+	set_ui_lock,
+	turn,
+	set_turn
 }) {
-	const [ui_lock, set_ui_lock] = useState(false)
-	const [turn, set_turn] = useState(user_settings.player_1)
 	console.log("Game tree: ", game_tree)
 	console.log("board: ", board)
 	console.log("ui lock: ", ui_lock)
@@ -755,10 +781,17 @@ function TicTacToePuzzle({settings, board, set_board, game_tree, set_game_tree, 
 	if(board.toString() === user_settings.default_tic_tac_toe.toString() && settings.mode === user_settings.player_vs_ai_mode && settings.first_to_move === user_settings.ai) {
 		ui_lock_val = true
 		const perform_ai_move = async (new_board) => {
+			const orig_board = board.toString()
 			const [res_minimax, board_after_ai_move, res_pruning] = await do_ai_move_first(game_tree, new_board, settings.num_rows, user_settings.x_char, settings.ai_algorithm)
 			let rv = res_pruning
 			if(settings.ai_algorithm === user_settings.minimax_algorithm_name) {
 				rv = res_minimax
+			}
+			const curr_board = board.toString() 
+			console.log("ORIG BOARD: ", orig_board)
+			console.log("CURR BOARD: ", curr_board)
+			if (orig_board !== curr_board) {
+				return
 			}
 			const tree_after_ai_move = rv[0]
 			set_board(board_after_ai_move)
@@ -776,7 +809,25 @@ function TicTacToePuzzle({settings, board, set_board, game_tree, set_game_tree, 
 	if(settings.mode === user_settings.ai_vs_ai_mode && (turn !== settings.first_to_move && board.toString() === user_settings.default_tic_tac_toe.toString())){ 
 		set_turn(settings.first_to_move)
 	}
-	
+	const settingsRef = useRef(settings);
+
+	useEffect(() => {
+		settingsRef.current = settings;
+	}, [settings]);
+	const inner_set_board = (board, board_id) => {
+		console.log("RUNNING INNER SET BOARD")
+		const currsettings = settingsRef.current
+		if(board_id === player_vs_ai_id && currsettings.mode !== user_settings.player_vs_ai_mode) {
+			console.log("BOARD INVALID")
+			return -1
+		}
+		if(board_id === ai_vs_ai_id && currsettings.mode !== user_settings.ai_vs_ai_mode) {
+			console.log("BOARD INVALID")
+			return -1
+		}
+		console.log("Board valid, board id is ", board_id, ", game mode is ", settings.mode)
+		set_board(board)
+	}
 	return (
 		<div>
 		{settings.mode === user_settings.player_vs_ai_mode && <BoardDisplay board={board} set_board={set_board} ui_lock={ui_lock_val} set_ui_lock={set_ui_lock} game_tree={game_tree} set_game_tree={set_game_tree} settings={settings} turn={turn} set_turn={set_turn} player_vs_ai_done={player_vs_ai_done} set_player_vs_ai_done={set_player_vs_ai_done}
@@ -786,7 +837,7 @@ function TicTacToePuzzle({settings, board, set_board, game_tree, set_game_tree, 
 			set_alpha_beta_pruning_visited={set_alpha_beta_pruning_visited}
 			/>}
 		{settings.mode === user_settings.player_vs_player_mode && <BoardDisplayPlayerVsPlayer board={board} set_board={set_board} ui_lock={ui_lock_val} set_ui_lock={set_ui_lock} settings={settings} turn={turn} set_turn={set_turn}/>}
-		{settings.mode === user_settings.ai_vs_ai_mode && <BoardDisplayAIvsAI board={board} set_board={set_board} settings={settings} turn={turn} set_turn={set_turn} game_tree={game_tree} set_game_tree={set_game_tree} done={ai_vs_ai_done} set_done={set_ai_vs_ai_done}
+		{settings.mode === user_settings.ai_vs_ai_mode && <BoardDisplayAIvsAI board={board} set_board={inner_set_board} settings={settings} turn={turn} set_turn={set_turn} game_tree={game_tree} set_game_tree={set_game_tree} done={ai_vs_ai_done} set_done={set_ai_vs_ai_done}
 			set_ai_1_minimax_time={set_ai_1_minimax_time}
 			set_ai_1_minimax_visited={set_ai_1_minimax_visited}
 			set_ai_1_alpha_beta_pruning_time={set_ai_1_alpha_beta_pruning_time}
@@ -841,19 +892,33 @@ function ModuleB({active}) {
 	console.log("minimax_time: ", minimax_time)
 	console.log("alpha_beta_pruning_visited: ", alpha_beta_pruning_visited)
 	console.log("alpha_beta_pruning_time: ", alpha_beta_pruning_time)
-
+	let board_player_char = 'x'
+	let board_ai_char = 'o'
+	// if (settings.mode === "Player vs AI" && settings.first_to_move === "AI") {
+	// 	board_player_char = 'o'
+	// 	board_ai_char = 'x'
+	// }
+	// if(settings.mode === user_settings.player_vs_player_mode && settings.first_to_move === 'Player 2') {
+	// 	board_player_char = 'o'
+	// 	board_ai_char = 'x'	
+	// }
+	if(settings.mode === user_settings.player_vs_ai_mode && settings.first_to_move === 'AI') {
+		board_player_char = 'o'
+		board_ai_char = 'x'
+	}
+	console.log("BOARD PLAYER CHAR: ", board_player_char, ", BOARD AI CHAR: ", board_ai_char);
 	const player_won = settings.mode === user_settings.player_vs_ai_mode ?
-		check_win(board, settings.player_char, settings.num_rows) : false
+		check_win(board, board_player_char, settings.num_rows) : false
 	const ai_won = settings.mode === user_settings.player_vs_ai_mode ? 
-		check_win(board, settings.ai_char, settings.num_rows) : false
+		check_win(board, board_ai_char, settings.num_rows) : false
 	const ai_1_won = settings.mode === user_settings.ai_vs_ai_mode ? 
 		check_win(board, settings.ai_1_char, settings.num_rows) : false
 	const ai_2_won = settings.mode === user_settings.ai_vs_ai_mode ? 
 		check_win(board, settings.ai_2_char, settings.num_rows) : false
 	const player_1_won = settings.mode === user_settings.player_vs_player_mode ? 
-		check_win(board, settings.player_2_char, settings.num_rows) : false
+		check_win(board, board_player_char, settings.num_rows) : false
 	const player_2_won = settings.mode === user_settings.player_vs_player_mode ? 
-		check_win(board, settings.player_2_char, settings.num_rows) : false
+		check_win(board, board_ai_char, settings.num_rows) : false
 	const draw = check_draw(board, settings.num_rows)
 	const is_terminal = check_terminal(board, settings.num_rows)
 	if(is_terminal && settings.mode === user_settings.player_vs_ai_mode) {
@@ -867,14 +932,19 @@ function ModuleB({active}) {
 		if(settings.mode === user_settings.ai_vs_ai_mode) {
 			set_ai_vs_ai_done(false)
 		}
+		if(settings.mode === user_settings.player_vs_player_mode) {
+			set_ui_lock(false)
+		}
 	}
+	const [ui_lock, set_ui_lock] = useState(false)
+	const [turn, set_turn] = useState(user_settings.player_1)
 	return (
 		<div className="module">
 			<div className="tic-tac-toe-wrapper">
 				<div className="puzzle-title">
 					Tic-Tac-Toe
 				</div>
-				<TicTacToeHeader settings={settings} set_settings={set_settings} set_board={set_board} set_game_tree={set_game_tree} default_game_tree={default_game_tree} ai_vs_ai_done={ai_vs_ai_done} set_ai_vs_ai_done={set_ai_vs_ai_done} player_vs_ai_done={player_vs_ai_done} set_player_vs_ai_done={set_player_vs_ai_done}/>
+				<TicTacToeHeader settings={settings} set_settings={set_settings} set_board={set_board} set_game_tree={set_game_tree} default_game_tree={default_game_tree} ai_vs_ai_done={ai_vs_ai_done} set_ai_vs_ai_done={set_ai_vs_ai_done} player_vs_ai_done={player_vs_ai_done} set_player_vs_ai_done={set_player_vs_ai_done} set_ui_lock={set_ui_lock} set_turn={set_turn}/>
 				<TicTacToePuzzle settings={settings} board={board} set_board={set_board} game_tree={game_tree} set_game_tree={set_game_tree} ai_vs_ai_done={ai_vs_ai_done} set_ai_vs_ai_done={set_ai_vs_ai_done} player_vs_ai_done={player_vs_ai_done} set_player_vs_ai_done={set_player_vs_ai_done} 
 					set_minimax_visited={set_minimax_visited}
 					set_alpha_beta_pruning_visited={set_alpha_beta_pruning_visited}
@@ -888,6 +958,10 @@ function ModuleB({active}) {
 					set_ai_2_alpha_beta_pruning_visited={set_ai_2_alpha_beta_pruning_visited}
 					set_ai_2_minimax_time={set_ai_2_minimax_time}
 					set_ai_2_alpha_beta_pruning_time={set_ai_2_alpha_beta_pruning_time}
+		ui_lock={ui_lock}
+		set_ui_lock={set_ui_lock}
+		turn={turn}
+		set_turn={set_turn}
 
 
 					/>
